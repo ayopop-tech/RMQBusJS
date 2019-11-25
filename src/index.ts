@@ -2,6 +2,7 @@ import { IBroker } from './Broker';
 import * as amqp from 'amqplib';
 import { Connection, Channel, Replies } from 'amqplib';
 import FunctionRegistry from './FunctionRegistory';
+var timeouts
 
 export default class RMQBroker implements IBroker {
   private static CONN: Connection;
@@ -59,12 +60,14 @@ export default class RMQBroker implements IBroker {
       RMQBroker.CHAN.assertQueue('', { exclusive: true, durable: false, autoDelete: true })
         .then((q: Replies.AssertQueue) => {
           const corr = generateUuid();
+          
           RMQBroker.CHAN.consume(
             q.queue,
             (msg: any) => {
               if (msg && msg.properties.correlationId === corr) {
                 const consumerTag = msg.fields.consumerTag;
                 console.log('[x] Response Received for : ' + q.queue);
+                clearTimeout(timeouts)
                 res(msg.content);
                 RMQBroker.CHAN.cancel(consumerTag);
               }
@@ -77,9 +80,10 @@ export default class RMQBroker implements IBroker {
             replyTo: q.queue,
           });
           // return if no respose received from topic in 15 sec's
-          setTimeout(() => {
-            res(false);
-          }, RMQBroker.RPC_TIMEOUT);
+          timeouts = setTimeout(function () {
+             RMQBroker.CHAN.deleteQueue(q.queue)
+             res(false)  
+        }, RMQBroker.RPC_TIMEOUT);
         })
         .catch(err => {
           throw err;
