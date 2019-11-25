@@ -81,15 +81,8 @@ export default class RMQBroker implements IBroker {
           });
           // return if no respose received from topic in 15 sec's
           timeouts = setTimeout(function () {
-            console.log("into timeout----------------")
-            //  RMQBroker.CONN.close()
-            console.log("queue name: ")
-            console.log(q.queue)
              RMQBroker.CHAN.deleteQueue(q.queue)
-            console.log("queue delete  hua")
-             res(false)
-            //process.exit(0) 
-            
+             res(false)  
         }, RMQBroker.RPC_TIMEOUT);
         })
         .catch(err => {
